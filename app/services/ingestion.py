@@ -144,8 +144,10 @@ class IngestionService:
                 entity_nodes[entity.name] = existing_node
             else:
                 # Create new node
+                from app.models.schemas import NodeCreate
+
                 node = await self.graph_service.create_node(
-                    type(entity).__class__(
+                    NodeCreate(
                         name=entity.name,
                         type=entity.type,
                         properties=entity.properties or {},

@@ -1,0 +1,10 @@
+[phases.setup]
+
+[phases.install]
+cmd = "pip install -r requirements.txt && cd graph-rag-ui && npm install"
+
+[phases.build]
+cmd = "cd graph-rag-ui && npm run build"
+
+[start]
+cmd = "uvicorn app.main:app --host 0.0.0.0 --port $PORT"

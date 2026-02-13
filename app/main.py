@@ -1,8 +1,11 @@
 """FastAPI application entry point"""
 
 from contextlib import asynccontextmanager
+from pathlib import Path
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 
 from app.config import get_settings
 from app.database import init_db, check_db_connection
@@ -11,6 +14,8 @@ from app.api.ingest import router as ingest_router
 from app.api.graph import router as graph_router
 
 settings = get_settings()
+
+STATIC_DIR = Path(__file__).parent / "static"
 
 
 @asynccontextmanager
@@ -62,22 +67,42 @@ All API endpoints require an API key passed in the `X-API-Key` header.
 # Add CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Configure appropriately for production
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# Include routers
+# Include API routers
 app.include_router(health_router)
 app.include_router(ingest_router)
 app.include_router(graph_router)
 
+# Mount static files for React frontend (must be after API routes)
+if STATIC_DIR.exists():
+    app.mount("/assets", StaticFiles(directory=STATIC_DIR / "assets"), name="assets")
 
-# Root endpoint redirect to docs
+
 @app.get("/", include_in_schema=False)
 async def root():
-    """Redirect to API documentation"""
+    """Serve React app or redirect to docs"""
+    index_file = STATIC_DIR / "index.html"
+    if index_file.exists():
+        return FileResponse(index_file)
     from fastapi.responses import RedirectResponse
 
     return RedirectResponse(url="/docs")
+
+
+@app.get("/{path:path}", include_in_schema=False)
+async def serve_spa(path: str):
+    """Serve React app for client-side routing"""
+    file_path = STATIC_DIR / path
+    if file_path.exists() and file_path.is_file():
+        return FileResponse(file_path)
+    index_file = STATIC_DIR / "index.html"
+    if index_file.exists():
+        return FileResponse(index_file)
+    from fastapi.responses import JSONResponse
+
+    return JSONResponse(status_code=404, content={"detail": "Not found"})

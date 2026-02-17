@@ -15,6 +15,7 @@ class Settings(BaseSettings):
     openai_api_key: Optional[str] = None
     llm_provider: str = "openai"
     llm_model: str = "gpt-4"
+    enable_llm_canonicalization: bool = False
 
     # API Authentication
     api_key: str = "default-api-key-change-in-production"

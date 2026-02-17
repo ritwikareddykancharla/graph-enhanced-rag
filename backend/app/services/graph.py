@@ -80,6 +80,30 @@ class GraphService:
         result = await self.db.execute(select(Node).where(Node.name == name))
         return result.scalar_one_or_none()
 
+    async def find_node_by_normalized_name(self, normalized_name: str) -> Optional[Node]:
+        """
+        Find a node by normalized name using a best-effort fuzzy scan.
+        """
+        if not normalized_name:
+            return None
+
+        tokens = normalized_name.split()
+        token = max(tokens, key=len) if tokens else normalized_name
+
+        result = await self.db.execute(select(Node).where(Node.name.ilike(f"%{token}%")))
+        candidates = list(result.scalars().all())
+
+        from app.utils.normalization import normalize_entity_name
+
+        for node in candidates:
+            if normalize_entity_name(node.name) == normalized_name:
+                return node
+            aliases = node.properties.get("aliases", []) if node.properties else []
+            if any(normalize_entity_name(a) == normalized_name for a in aliases):
+                return node
+
+        return None
+
     async def list_nodes(
         self,
         skip: int = 0,
@@ -150,10 +174,25 @@ class GraphService:
         Returns:
             Existing or newly created node
         """
+        from app.utils.normalization import normalize_entity_name, normalize_entity_type
+
         node = await self.get_node_by_name(name)
+        if not node:
+            normalized_name = normalize_entity_name(name)
+            node = await self.find_node_by_normalized_name(normalized_name)
         if node:
             return node
-        return await self.create_node(NodeCreate(name=name, type=node_type))
+        canonical_type = normalize_entity_type(node_type)
+        return await self.create_node(
+            NodeCreate(
+                name=name,
+                type=canonical_type,
+                properties={
+                    "canonical_name": normalize_entity_name(name),
+                    "aliases": [],
+                },
+            )
+        )
 
     # ==================== Edge Operations ====================
 

@@ -13,7 +13,16 @@ from app.models.schemas import (
 from app.models.db_models import Node, Edge, Document
 from app.services.extraction import ExtractionService
 from app.services.graph import GraphService
+from app.services.canonicalization import CanonicalizationService
 from app.utils.url_scraper import scrape_url
+from app.utils.normalization import (
+    normalize_entity_name,
+    normalize_entity_type,
+    normalize_relation_type,
+)
+from app.config import get_settings
+
+settings = get_settings()
 
 
 class IngestionService:
@@ -29,12 +38,19 @@ class IngestionService:
         self.db = db
         self.graph_service = GraphService(db)
         self.extraction_service: Optional[ExtractionService] = None
+        self.canonicalization_service: Optional[CanonicalizationService] = None
 
     def _get_extraction_service(self) -> ExtractionService:
         """Get or create extraction service"""
         if self.extraction_service is None:
             self.extraction_service = ExtractionService()
         return self.extraction_service
+
+    def _get_canonicalization_service(self) -> CanonicalizationService:
+        """Get or create canonicalization service"""
+        if self.canonicalization_service is None:
+            self.canonicalization_service = CanonicalizationService()
+        return self.canonicalization_service
 
     async def ingest_text(self, request: IngestTextRequest) -> IngestResponse:
         """
@@ -57,6 +73,15 @@ class IngestionService:
         # Extract entities and relations
         extraction_service = self._get_extraction_service()
         extraction_result = await extraction_service.extract(request.text)
+        extraction_result = self._deterministic_normalize(extraction_result)
+
+        if settings.enable_llm_canonicalization:
+            try:
+                canonicalizer = self._get_canonicalization_service()
+                extraction_result = await canonicalizer.canonicalize(extraction_result)
+            except Exception:
+                # Keep deterministic normalization on failures
+                pass
 
         # Create nodes and edges
         nodes_created, edges_created = await self._create_graph_from_extraction(
@@ -102,6 +127,14 @@ class IngestionService:
         # Extract entities and relations
         extraction_service = self._get_extraction_service()
         extraction_result = await extraction_service.extract(scraped_content)
+        extraction_result = self._deterministic_normalize(extraction_result)
+
+        if settings.enable_llm_canonicalization:
+            try:
+                canonicalizer = self._get_canonicalization_service()
+                extraction_result = await canonicalizer.canonicalize(extraction_result)
+            except Exception:
+                pass
 
         # Create nodes and edges
         nodes_created, edges_created = await self._create_graph_from_extraction(
@@ -138,9 +171,22 @@ class IngestionService:
 
         # Create nodes for entities
         for entity in extraction.entities:
+            canonical_name = normalize_entity_name(entity.name)
+            canonical_type = normalize_entity_type(entity.type)
+
             # Check if node already exists
             existing_node = await self.graph_service.get_node_by_name(entity.name)
+            if not existing_node:
+                existing_node = await self.graph_service.find_node_by_normalized_name(
+                    canonical_name
+                )
             if existing_node:
+                # Attach alias if new name is different
+                if entity.name != existing_node.name:
+                    aliases = existing_node.properties.get("aliases", [])
+                    if entity.name not in aliases:
+                        aliases.append(entity.name)
+                        existing_node.properties["aliases"] = aliases
                 entity_nodes[entity.name] = existing_node
             else:
                 # Create new node
@@ -149,8 +195,14 @@ class IngestionService:
                 node = await self.graph_service.create_node(
                     NodeCreate(
                         name=entity.name,
-                        type=entity.type,
-                        properties=entity.properties or {},
+                        type=canonical_type,
+                        properties={
+                            **(entity.properties or {}),
+                            "canonical_name": canonical_name,
+                            "aliases": [entity.name]
+                            if entity.name != canonical_name
+                            else [],
+                        },
                         source_document_id=document_id,
                     )
                 )
@@ -181,7 +233,7 @@ class IngestionService:
             existing_edges, _ = await self.graph_service.list_edges(
                 source_id=source_node.id,
                 target_id=target_node.id,
-                relation_type=relation.relation_type,
+                relation_type=normalize_relation_type(relation.relation_type),
             )
 
             if not existing_edges:
@@ -192,7 +244,7 @@ class IngestionService:
                     EdgeCreate(
                         source_id=source_node.id,
                         target_id=target_node.id,
-                        relation_type=relation.relation_type,
+                        relation_type=normalize_relation_type(relation.relation_type),
                         properties=relation.properties or {},
                     )
                 )
@@ -220,3 +272,27 @@ class IngestionService:
         await self.db.flush()
         await self.db.refresh(document)
         return document
+
+    def _deterministic_normalize(self, extraction: ExtractionResult) -> ExtractionResult:
+        """Normalize entity and relation types deterministically."""
+        entities = []
+        for entity in extraction.entities:
+            if not entity.name:
+                continue
+            entities.append(
+                entity.model_copy(update={"type": normalize_entity_type(entity.type)})
+            )
+
+        relations = []
+        for relation in extraction.relations:
+            if not relation.source or not relation.target:
+                continue
+            relations.append(
+                relation.model_copy(
+                    update={
+                        "relation_type": normalize_relation_type(relation.relation_type)
+                    }
+                )
+            )
+
+        return ExtractionResult(entities=entities, relations=relations)

@@ -80,6 +80,12 @@ Core endpoints:
 - `POST /graph/query/path`
 - `GET /health`
 
+### Data Quality Controls
+
+- Deterministic normalization for entity types and relation verbs (e.g., `db` → `database`, `connects` → `connects_to`).
+- Alias tracking for entity names to reduce duplicates.
+- Optional LLM-assisted canonicalization for higher-quality labels (`ENABLE_LLM_CANONICALIZATION=true`).
+
 ### Explainable Path Queries
 
 `POST /graph/query/path` now returns multiple scored paths with a short explanation string

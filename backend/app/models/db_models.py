@@ -67,6 +67,7 @@ class Node(Base):
     __table_args__ = (
         Index("idx_nodes_name", "name"),
         Index("idx_nodes_type", "type"),
+        Index("idx_nodes_name_type", "name", "type"),
     )
 
     def __repr__(self) -> str:
@@ -109,6 +110,8 @@ class Edge(Base):
         Index("idx_edges_source", "source_id"),
         Index("idx_edges_target", "target_id"),
         Index("idx_edges_relation_type", "relation_type"),
+        Index("idx_edges_source_target", "source_id", "target_id"),
+        Index("idx_edges_source_relation", "source_id", "relation_type"),
     )
 
     def __repr__(self) -> str:

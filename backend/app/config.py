@@ -25,6 +25,15 @@ class Settings(BaseSettings):
     environment: str = "development"
     debug: bool = False
     cors_allow_origins: str = "*"
+    log_level: str = "INFO"
+
+    # Rate limiting (in-memory)
+    rate_limit_enabled: bool = True
+    rate_limit_requests: int = 120
+    rate_limit_window_seconds: int = 60
+
+    # Request payload limits (bytes)
+    max_request_size_bytes: int = 2_000_000
 
     # Server
     port: int = 8000

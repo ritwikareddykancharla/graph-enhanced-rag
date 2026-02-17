@@ -86,6 +86,13 @@ Core endpoints:
 - Alias tracking for entity names to reduce duplicates.
 - Optional LLM-assisted canonicalization for higher-quality labels (`ENABLE_LLM_CANONICALIZATION=true`).
 
+### Production Features
+
+- Structured JSON logging (configurable via `LOG_LEVEL`).
+- In-memory rate limiting per client+API key (`RATE_LIMIT_*`).
+- Request size guard (`MAX_REQUEST_SIZE_BYTES`).
+- Retry logic for upstream network calls.
+
 ### Explainable Path Queries
 
 `POST /graph/query/path` now returns multiple scored paths with a short explanation string

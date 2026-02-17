@@ -1,14 +1,17 @@
 """FastAPI application entry point"""
 
 from contextlib import asynccontextmanager
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 
 from app.config import get_settings
 from app.database import init_db
 from app.api.health import router as health_router
 from app.api.ingest import router as ingest_router
 from app.api.graph import router as graph_router
+from app.utils.logging_config import configure_logging
+from app.utils.rate_limit import RateLimiter, RateLimitMiddleware
 
 settings = get_settings()
 
@@ -21,6 +24,7 @@ async def lifespan(app: FastAPI):
     Handles startup and shutdown events.
     """
     # Startup
+    configure_logging(settings.log_level)
     print("Starting up Graph-Enhanced RAG application...")
 
     # Initialize database tables
@@ -59,6 +63,21 @@ All API endpoints require an API key passed in the `X-API-Key` header.
     redoc_url="/redoc",
 )
 
+# Payload size guard (before heavier middleware)
+@app.middleware("http")
+async def max_request_size_guard(request: Request, call_next):
+    if request.headers.get("content-length"):
+        try:
+            content_length = int(request.headers["content-length"])
+            if content_length > settings.max_request_size_bytes:
+                return JSONResponse(
+                    status_code=413,
+                    content={"detail": "Request payload too large"},
+                )
+        except ValueError:
+            pass
+    return await call_next(request)
+
 # Add CORS middleware
 cors_origins = (
     ["*"]
@@ -73,6 +92,14 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Add rate limiting middleware
+if settings.rate_limit_enabled:
+    limiter = RateLimiter(
+        max_requests=settings.rate_limit_requests,
+        window_seconds=settings.rate_limit_window_seconds,
+    )
+    app.add_middleware(RateLimitMiddleware, limiter=limiter)
 
 # Include API routers
 app.include_router(health_router)

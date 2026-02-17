@@ -8,6 +8,7 @@ from langchain_community.chat_models import ChatOpenAI
 
 from app.config import get_settings
 from app.models.schemas import Entity, Relation, ExtractionResult
+from app.utils.retry import retry_async
 
 settings = get_settings()
 
@@ -105,7 +106,12 @@ class ExtractionService:
         chain = prompt | self.llm
 
         try:
-            response = await chain.ainvoke({"text": text})
+            response = await retry_async(
+                lambda: chain.ainvoke({"text": text}),
+                retries=2,
+                base_delay=0.5,
+                max_delay=2.0,
+            )
             result = self._parse_response(response.content)
             return result
         except Exception as e:

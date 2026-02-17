@@ -6,6 +6,7 @@ from urllib.parse import urlparse
 
 import httpx
 from bs4 import BeautifulSoup
+from app.utils.retry import retry_async
 
 
 async def scrape_url(url: str, timeout: int = 30) -> str:
@@ -38,9 +39,19 @@ async def scrape_url(url: str, timeout: int = 30) -> str:
     }
 
     async with httpx.AsyncClient(timeout=timeout, follow_redirects=True) as client:
-        try:
+        async def _fetch():
             response = await client.get(url, headers=headers)
             response.raise_for_status()
+            return response
+
+        try:
+            response = await retry_async(
+                _fetch,
+                retries=2,
+                base_delay=0.5,
+                max_delay=2.0,
+                exceptions=(httpx.HTTPError,),
+            )
         except httpx.HTTPStatusError as e:
             raise ValueError(
                 f"HTTP error {e.response.status_code} while fetching {url}"

@@ -9,6 +9,14 @@ A knowledge-graph-first RAG system that ingests unstructured text or URLs, extra
 - Recursive CTE traversal for impact analysis and path finding
 - Dedicated frontend and backend services for clean deployment on Railway
 
+## Resume-Ready Highlights
+
+- Built a graph-first RAG engine with recursive SQL traversal for explainable multi-hop reasoning.
+- Added multi-path scoring with human-readable path explanations to make traversal decisions auditable.
+- Implemented data quality controls: deterministic normalization, alias tracking, and optional LLM canonicalization.
+- Hardened the service with rate limits, payload guards, retries, and structured JSON logging.
+- Shipped an interactive demo studio UI with demo-mode seeding for fast product walkthroughs.
+
 ## Repo Layout
 
 ```

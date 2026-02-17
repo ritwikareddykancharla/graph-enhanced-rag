@@ -23,6 +23,7 @@ class Settings(BaseSettings):
     max_traversal_depth: int = 5
     environment: str = "development"
     debug: bool = False
+    cors_allow_origins: str = "*"
 
     # Server
     port: int = 8000

@@ -11,24 +11,28 @@ import {
 import '@xyflow/react/dist/style.css';
 
 const nodeTypeColors = {
-  server: '#3b82f6',
+  server: '#f59e0b',
   database: '#10b981',
-  service: '#8b5cf6',
-  cache: '#f59e0b',
-  default: '#6b7280',
+  service: '#ef7a3f',
+  api: '#8b5cf6',
+  cache: '#3b82f6',
+  default: '#9ca3af',
 };
 
 const createNodeStyle = (type, isImpacted, isSource) => {
   const baseColor = nodeTypeColors[type] || nodeTypeColors.default;
   return {
     background: isImpacted ? '#ef4444' : baseColor,
-    color: 'white',
-    border: isSource ? '3px solid #fbbf24' : '2px solid white',
-    borderRadius: '8px',
-    padding: '10px 15px',
-    fontSize: '14px',
+    color: '#0b0b0b',
+    border: isSource ? '2px solid #f7f3ea' : '1px solid rgba(255,255,255,0.6)',
+    borderRadius: '14px',
+    padding: '10px 14px',
+    fontSize: '13px',
     fontWeight: '600',
-    boxShadow: isImpacted ? '0 0 20px rgba(239, 68, 68, 0.5)' : '0 2px 8px rgba(0,0,0,0.2)',
+    fontFamily: '"Space Grotesk", system-ui, sans-serif',
+    boxShadow: isImpacted
+      ? '0 0 24px rgba(239, 68, 68, 0.45)'
+      : '0 10px 28px rgba(0,0,0,0.28)',
     transition: 'all 0.3s ease',
   };
 };
@@ -42,7 +46,7 @@ export default function GraphFlow({ nodes: propNodes, edges: propEdges, impacted
       const isImpacted = impactedNodeIds.includes(node.id);
       const isSource = node.id === sourceNodeId;
       const angle = (index / apiNodes.length) * 2 * Math.PI;
-      const radius = 200;
+      const radius = 220;
       
       return {
         id: String(node.id),
@@ -52,14 +56,16 @@ export default function GraphFlow({ nodes: propNodes, edges: propEdges, impacted
             <div className="flex flex-col items-center">
               <span>{node.name}</span>
               {node.type && (
-                <span className="text-xs opacity-75 mt-1">{node.type}</span>
+                <span className="text-[11px] uppercase tracking-[0.2em] mt-1 opacity-70">
+                  {node.type}
+                </span>
               )}
             </div>
           ),
         },
         position: {
-          x: 300 + radius * Math.cos(angle),
-          y: 300 + radius * Math.sin(angle),
+          x: 320 + radius * Math.cos(angle),
+          y: 280 + radius * Math.sin(angle),
         },
         style: createNodeStyle(node.type, isImpacted, isSource),
       };
@@ -74,16 +80,16 @@ export default function GraphFlow({ nodes: propNodes, edges: propEdges, impacted
       label: edge.relation_type,
       animated: impactedNodeIds.includes(edge.target_id),
       style: {
-        stroke: impactedNodeIds.includes(edge.target_id) ? '#ef4444' : '#94a3b8',
+        stroke: impactedNodeIds.includes(edge.target_id) ? '#ef4444' : '#8b8b8b',
         strokeWidth: 2,
       },
-      labelStyle: { fill: '#fff', fontWeight: 500 },
-      labelBgStyle: { fill: '#1e293b', fillOpacity: 0.8 },
+      labelStyle: { fill: '#f7f3ea', fontWeight: 500 },
+      labelBgStyle: { fill: '#151515', fillOpacity: 0.85 },
       labelBgPadding: [8, 4],
       labelBgBorderRadius: 4,
       markerEnd: {
         type: MarkerType.ArrowClosed,
-        color: impactedNodeIds.includes(edge.target_id) ? '#ef4444' : '#94a3b8',
+        color: impactedNodeIds.includes(edge.target_id) ? '#ef4444' : '#8b8b8b',
       },
     }));
   }, [impactedNodeIds]);
@@ -103,7 +109,7 @@ export default function GraphFlow({ nodes: propNodes, edges: propEdges, impacted
   const nodeTypes = useMemo(() => ({}), []);
 
   return (
-    <div className="w-full h-full bg-slate-900">
+    <div className="w-full h-full">
       <ReactFlow
         nodes={nodes}
         edges={edges}
@@ -115,12 +121,12 @@ export default function GraphFlow({ nodes: propNodes, edges: propEdges, impacted
         minZoom={0.1}
         maxZoom={2}
       >
-        <Background color="#334155" gap={20} />
-        <Controls className="bg-slate-800 border-slate-700" />
+        <Background color="rgba(255,255,255,0.08)" gap={24} />
+        <Controls className="bg-[#1a1a1a] border-[color:rgba(255,255,255,0.08)]" />
         <MiniMap
-          className="bg-slate-800 border-slate-700"
+          className="bg-[#1a1a1a] border-[color:rgba(255,255,255,0.08)]"
           nodeColor={(node) => node.style?.background || '#6b7280'}
-          maskColor="rgba(0, 0, 0, 0.8)"
+          maskColor="rgba(0, 0, 0, 0.65)"
         />
       </ReactFlow>
     </div>

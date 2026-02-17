@@ -1,11 +1,12 @@
 {
-  "name": "graph-rag-ui",
+  "name": "graph-rag-frontend",
   "private": true,
   "version": "0.0.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
+    "start": "serve -s dist -l $PORT",
     "lint": "eslint .",
     "preview": "vite preview"
   },
@@ -15,6 +16,7 @@
     "axios": "^1.13.5",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
+    "serve": "^14.2.3",
     "tailwindcss": "^4.1.18"
   },
   "devDependencies": {

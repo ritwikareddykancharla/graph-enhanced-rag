@@ -128,6 +128,7 @@ The frontend provides a studio-style UI for:
 - Text or URL ingestion
 - Graph visualization
 - Impact analysis
+- Demo mode with a sample dataset
 
 Configure the API connection via `VITE_API_BASE_URL`.
 

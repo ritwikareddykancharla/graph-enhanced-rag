@@ -1,9 +1,17 @@
 import { useState } from 'react';
 import { ingestText, ingestUrl, analyzeImpact } from '../services/api';
+import { demoGraph } from '../data/demoGraph';
 
 const EXAMPLE_TEXT = `The Payment Service depends on Database A. Database A is hosted on AWS. The Fraud Team owns the Payment Service. Database A connects to Cache B for session storage. The Notification Service uses the Payment Service for transactions.`;
 
-export default function InputPanel({ onGraphUpdate, onImpactResult, isLoading, setIsLoading }) {
+export default function InputPanel({
+  onGraphUpdate,
+  onImpactResult,
+  isLoading,
+  setIsLoading,
+  demoMode,
+  onToggleDemo,
+}) {
   const [mode, setMode] = useState('text');
   const [text, setText] = useState('');
   const [url, setUrl] = useState('');
@@ -11,6 +19,16 @@ export default function InputPanel({ onGraphUpdate, onImpactResult, isLoading, s
   const [status, setStatus] = useState({ type: '', message: '' });
 
   const handleIngest = async () => {
+    if (demoMode) {
+      setText(demoGraph.text);
+      onGraphUpdate();
+      setStatus({
+        type: 'info',
+        message: 'Demo mode is on. Using sample graph data.',
+      });
+      return;
+    }
+
     if (mode === 'text' && !text.trim()) {
       setStatus({ type: 'error', message: 'Paste some text to ingest.' });
       return;
@@ -87,7 +105,7 @@ export default function InputPanel({ onGraphUpdate, onImpactResult, isLoading, s
         </p>
       </div>
 
-      <div className="flex gap-2 mb-4">
+      <div className="flex gap-2 mb-4 flex-wrap">
         <button
           className={`btn ${mode === 'text' ? 'btn-primary' : 'btn-secondary'}`}
           onClick={() => setMode('text')}
@@ -101,6 +119,13 @@ export default function InputPanel({ onGraphUpdate, onImpactResult, isLoading, s
           disabled={isLoading}
         >
           Use URL
+        </button>
+        <button
+          className={`btn ${demoMode ? 'btn-primary' : 'btn-outline'}`}
+          onClick={() => onToggleDemo(!demoMode)}
+          disabled={isLoading}
+        >
+          {demoMode ? 'Demo Mode: On' : 'Demo Mode'}
         </button>
         <button className="btn btn-outline ml-auto" onClick={loadExample} disabled={isLoading}>
           Load Example
@@ -130,7 +155,7 @@ export default function InputPanel({ onGraphUpdate, onImpactResult, isLoading, s
       )}
 
       <button className="btn btn-primary w-full" onClick={handleIngest} disabled={isLoading}>
-        {isLoading ? 'Processing…' : 'Build Graph'}
+        {demoMode ? 'Load Demo Graph' : isLoading ? 'Processing…' : 'Build Graph'}
       </button>
 
       <div className="mt-6">

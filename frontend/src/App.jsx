@@ -3,6 +3,7 @@ import { ReactFlowProvider } from '@xyflow/react';
 import GraphFlow from './components/GraphFlow';
 import InputPanel from './components/InputPanel';
 import { getNodes, getEdges } from './services/api';
+import { demoGraph } from './data/demoGraph';
 
 function App() {
   const [nodes, setNodes] = useState([]);
@@ -11,8 +12,16 @@ function App() {
   const [sourceNodeId, setSourceNodeId] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isConnected, setIsConnected] = useState(false);
+  const [demoMode, setDemoMode] = useState(false);
 
   const fetchGraph = useCallback(async () => {
+    if (demoMode) {
+      setNodes(demoGraph.nodes);
+      setEdges(demoGraph.edges);
+      setIsConnected(true);
+      return;
+    }
+
     try {
       const [nodesData, edgesData] = await Promise.all([getNodes(), getEdges()]);
       setNodes(nodesData.nodes || []);
@@ -22,7 +31,7 @@ function App() {
       console.error('Failed to fetch graph:', error);
       setIsConnected(false);
     }
-  }, []);
+  }, [demoMode]);
 
   useEffect(() => {
     fetchGraph();
@@ -33,6 +42,12 @@ function App() {
     setImpactedNodeIds([]);
     setSourceNodeId(null);
   }, [fetchGraph]);
+
+  const handleDemoToggle = (enabled) => {
+    setDemoMode(enabled);
+    setImpactedNodeIds([]);
+    setSourceNodeId(null);
+  };
 
   const handleImpactResult = useCallback((result) => {
     if (result) {
@@ -76,9 +91,11 @@ function App() {
             onImpactResult={handleImpactResult}
             isLoading={isLoading}
             setIsLoading={setIsLoading}
+            demoMode={demoMode}
+            onToggleDemo={handleDemoToggle}
           />
 
-          <section className="graph-shell">
+          <section className="graph-shell fade-in">
             <div className="graph-header">
               <div className="graph-title">Live Graph Canvas</div>
               <div className="graph-stats">

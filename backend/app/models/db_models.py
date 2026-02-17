@@ -20,7 +20,7 @@ class Document(Base):
         String(50), default="text"
     )  # 'text' or 'url'
     source_url: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
-    metadata: Mapped[dict] = mapped_column(JSONB, default=dict)
+    metadata_: Mapped[dict] = mapped_column("metadata", JSONB, default=dict)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
     # Relationships

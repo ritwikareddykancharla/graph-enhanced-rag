@@ -64,7 +64,7 @@ class IngestionService:
         """
         # Create document record
         document = Document(
-            content=request.text, source_type="text", metadata=request.metadata or {}
+            content=request.text, source_type="text", metadata_=request.metadata or {}
         )
         self.db.add(document)
         await self.db.flush()
@@ -118,7 +118,7 @@ class IngestionService:
             content=scraped_content,
             source_type="url",
             source_url=request.url,
-            metadata=request.metadata or {},
+            metadata_=request.metadata or {},
         )
         self.db.add(document)
         await self.db.flush()
@@ -266,7 +266,7 @@ class IngestionService:
             content=doc_data.content,
             source_type=doc_data.source_type,
             source_url=doc_data.source_url,
-            metadata=doc_data.metadata or {},
+            metadata_=doc_data.metadata or {},
         )
         self.db.add(document)
         await self.db.flush()

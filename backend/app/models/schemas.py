@@ -2,7 +2,7 @@
 
 from typing import Optional, List, Dict, Any
 from datetime import datetime
-from pydantic import BaseModel, Field, HttpUrl
+from pydantic import BaseModel, Field, HttpUrl, ConfigDict
 
 
 # ==================== Health ====================
@@ -152,11 +152,10 @@ class DocumentResponse(BaseModel):
     content: str
     source_type: str
     source_url: Optional[str]
-    metadata: Dict[str, Any]
+    metadata: Dict[str, Any] = Field(alias="metadata_")
     created_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True, populate_by_name=True)
 
 
 # ==================== Ingestion ====================

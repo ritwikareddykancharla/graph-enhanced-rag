@@ -111,7 +111,9 @@ app.include_router(ingest_router)
 app.include_router(graph_router)
 
 frontend_dist = Path(__file__).parent.parent.parent / "frontend" / "dist"
+print(f"Looking for frontend at: {frontend_dist}, exists: {frontend_dist.exists()}")
 if frontend_dist.exists():
+    print(f"Frontend dist found, mounting static files")
     app.mount("/assets", StaticFiles(directory=frontend_dist / "assets"), name="assets")
 
     @app.get("/{full_path:path}")
@@ -120,3 +122,5 @@ if frontend_dist.exists():
         if file_path.exists() and file_path.is_file():
             return FileResponse(file_path)
         return FileResponse(frontend_dist / "index.html")
+else:
+    print(f"WARNING: Frontend dist not found at {frontend_dist}")

@@ -4,13 +4,11 @@ set -euo pipefail
 ROLE="${SERVICE_ROLE:-backend}"
 
 if [[ "$ROLE" == "frontend" ]]; then
-  echo "Starting frontend service..."
+  echo "Starting frontend service (Bun)..."
   cd frontend
-  if [[ ! -d node_modules ]]; then
-    npm install
-  fi
-  npm run build
-  npm run start
+  bun install
+  bun run build
+  bun run start
 else
   echo "Starting backend service..."
   cd backend

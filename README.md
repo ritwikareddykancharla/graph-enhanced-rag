@@ -177,7 +177,7 @@ Create two Railway services from the same repo.
 
 ### Backend Service
 
-- Root directory: `backend`
+- Root directory: `backend` (recommended)
 - Environment variables:
   - `DATABASE_URL`
   - `OPENAI_API_KEY`
@@ -187,11 +187,19 @@ Create two Railway services from the same repo.
 
 ### Frontend Service
 
-- Root directory: `frontend`
+- Root directory: `frontend` (recommended)
 - Environment variables:
   - `VITE_API_BASE_URL` = backend service URL
   - `VITE_API_KEY` = same API key as backend
 - Start command is defined in `frontend/railway.json`
+
+### Railpack Autodetect (Repo Root)
+
+If you want Railpack to autodetect from the repo root, use the provided `start.sh`
+and set `SERVICE_ROLE` per service:
+
+- Backend service: `SERVICE_ROLE=backend`
+- Frontend service: `SERVICE_ROLE=frontend`
 
 ## Example Request
 

@@ -1,5 +1,19 @@
-[build]
-cmd = "cd backend && pip install -r requirements.txt"
+[backend]
+source = "backend"
 
-[start]
-cmd = "cd backend && uvicorn app.main:app --host 0.0.0.0 --port $PORT"
+[backend.build]
+builder = "RAILPACK"
+
+[backend.deploy]
+startCommand = "uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}"
+healthcheckPath = "/health"
+
+[frontend]
+source = "frontend"
+
+[frontend.build]
+builder = "RAILPACK"
+buildCommand = "npm install && npm run build"
+
+[frontend.deploy]
+startCommand = "npm run start"

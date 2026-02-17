@@ -23,6 +23,12 @@ A knowledge-graph-first RAG system that ingests unstructured text or URLs, extra
 graph-enhanced-rag/
 ├── backend/
 │   ├── app/                 # FastAPI app package
+│   │   ├── api/
+│   │   ├── models/
+│   │   ├── services/
+│   │   └── utils/
+│   ├── evals/               # Labeled evaluation dataset
+│   ├── scripts/             # Evaluation scripts
 │   ├── tests/               # Pytest suite
 │   ├── requirements.txt
 │   ├── pyproject.toml
@@ -32,6 +38,9 @@ graph-enhanced-rag/
 │   └── .env.example
 └── frontend/
     ├── src/                 # React + Vite app
+    │   ├── components/
+    │   ├── data/
+    │   └── services/
     ├── package.json
     ├── railway.json         # Frontend Railway config
     └── .env.example

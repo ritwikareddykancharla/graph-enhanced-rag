@@ -18,11 +18,3 @@ async def health_check() -> HealthResponse:
     db_status = "connected" if await check_db_connection() else "disconnected"
 
     return HealthResponse(status="healthy", database=db_status, version="0.1.0")
-
-
-@router.get("/", response_model=HealthResponse)
-async def root() -> HealthResponse:
-    """
-    Root endpoint - same as health check.
-    """
-    return await health_check()

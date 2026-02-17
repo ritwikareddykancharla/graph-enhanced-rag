@@ -242,6 +242,9 @@ class PathQuery(BaseModel):
     relation_types: Optional[List[str]] = Field(
         None, description="Filter by relation types"
     )
+    top_k: Optional[int] = Field(
+        3, ge=1, le=20, description="Number of top paths to return"
+    )
 
 
 class PathNode(BaseModel):
@@ -252,14 +255,23 @@ class PathNode(BaseModel):
     type: Optional[str]
 
 
+class PathResult(BaseModel):
+    """A single scored path result"""
+
+    path: List[PathNode]
+    relations: List[str]
+    path_length: int
+    score: float
+    explanation: str
+
+
 class PathResponse(BaseModel):
     """Response for path query"""
 
     source_node: str
     target_node: str
-    path: List[PathNode]
-    relations: List[str]
-    path_length: int
+    paths: List[PathResult]
+    total_paths: int
     found: bool
 
 

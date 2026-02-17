@@ -12,6 +12,7 @@ from app.models.schemas import (
     EdgeResponse,
     ImpactedNode,
     PathNode,
+    PathResult,
     ImpactResponse,
     PathResponse,
 )
@@ -354,6 +355,7 @@ class GraphService:
         target_id: int,
         max_depth: int = 10,
         relation_types: Optional[List[str]] = None,
+        top_k: int = 3,
     ) -> PathResponse:
         """
         Find path between two nodes using Recursive CTE.
@@ -379,7 +381,7 @@ class GraphService:
         if relation_types:
             relation_filter = f"AND e.relation_type = ANY(ARRAY{relation_types})"
 
-        # BFS using Recursive CTE to find shortest path
+        # Recursive CTE to find candidate paths
         query = text(f"""
             WITH RECURSIVE path_search AS (
                 -- Base case: start from source
@@ -388,7 +390,8 @@ class GraphService:
                     e.relation_type,
                     1 as depth,
                     ARRAY[e.source_id, e.target_id] as path_ids,
-                    ARRAY[e.relation_type] as relations
+                    ARRAY[e.relation_type] as relations,
+                    e.weight as score
                 FROM edges e
                 WHERE e.source_id = :source_id {relation_filter}
                 
@@ -400,7 +403,8 @@ class GraphService:
                     e.relation_type,
                     ps.depth + 1,
                     ps.path_ids || e.target_id,
-                    ps.relations || e.relation_type
+                    ps.relations || e.relation_type,
+                    ps.score + e.weight
                 FROM edges e
                 JOIN path_search ps ON e.source_id = ps.target_id
                 WHERE ps.depth < :max_depth {relation_filter}
@@ -409,42 +413,85 @@ class GraphService:
             SELECT 
                 path_ids,
                 relations,
-                depth
+                depth,
+                score
             FROM path_search
             WHERE target_id = :target_id
             ORDER BY depth
-            LIMIT 1
         """)
 
         result = await self.db.execute(
             query,
             {"source_id": source_id, "target_id": target_id, "max_depth": max_depth},
         )
-        row = result.fetchone()
+        rows = result.fetchall()
 
-        if not row:
+        if not rows:
             return PathResponse(
                 source_node=source_node.name,
                 target_node=target_node.name,
-                path=[],
-                relations=[],
-                path_length=0,
+                paths=[],
+                total_paths=0,
                 found=False,
             )
 
-        # Build path with node details
-        path_nodes = []
-        for node_id in row.path_ids:
-            node = await self.get_node(node_id)
-            if node:
-                path_nodes.append(PathNode(id=node.id, name=node.name, type=node.type))
+        # Fetch nodes once for efficient lookup
+        unique_ids: Set[int] = set()
+        for row in rows:
+            unique_ids.update(row.path_ids)
+
+        node_lookup = {}
+        if unique_ids:
+            node_rows = await self.db.execute(select(Node).where(Node.id.in_(unique_ids)))
+            node_lookup = {n.id: n for n in node_rows.scalars().all()}
+
+        # Score and sort paths
+        scored_paths = []
+        for row in rows:
+            avg_weight = row.score / row.depth if row.depth else 0.0
+            scored_paths.append(
+                {
+                    "path_ids": row.path_ids,
+                    "relations": row.relations,
+                    "depth": row.depth,
+                    "score": avg_weight,
+                }
+            )
+
+        scored_paths.sort(key=lambda p: (-p["score"], p["depth"]))
+        top_paths = scored_paths[: max(top_k, 1)]
+
+        path_results: List[PathResult] = []
+        for path in top_paths:
+            path_nodes = []
+            for node_id in path["path_ids"]:
+                node = node_lookup.get(node_id)
+                if node:
+                    path_nodes.append(PathNode(id=node.id, name=node.name, type=node.type))
+
+            explanation_parts = []
+            for i in range(len(path_nodes) - 1):
+                relation = path["relations"][i] if i < len(path["relations"]) else "related_to"
+                explanation_parts.append(
+                    f"{path_nodes[i].name} -[{relation}]-> {path_nodes[i + 1].name}"
+                )
+            explanation = " | ".join(explanation_parts)
+
+            path_results.append(
+                PathResult(
+                    path=path_nodes,
+                    relations=path["relations"],
+                    path_length=path["depth"],
+                    score=round(path["score"], 4),
+                    explanation=explanation,
+                )
+            )
 
         return PathResponse(
             source_node=source_node.name,
             target_node=target_node.name,
-            path=path_nodes,
-            relations=row.relations,
-            path_length=row.depth,
+            paths=path_results,
+            total_paths=len(path_results),
             found=True,
         )
 

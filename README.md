@@ -80,6 +80,34 @@ Core endpoints:
 - `POST /graph/query/path`
 - `GET /health`
 
+### Explainable Path Queries
+
+`POST /graph/query/path` now returns multiple scored paths with a short explanation string
+for each path, making traversal decisions inspectable.
+
+Example response:
+
+```json
+{
+  "source_node": "Service A",
+  "target_node": "Database B",
+  "paths": [
+    {
+      "path": [
+        { "id": 1, "name": "Service A", "type": "service" },
+        { "id": 2, "name": "Database B", "type": "database" }
+      ],
+      "relations": ["depends_on"],
+      "path_length": 1,
+      "score": 1.0,
+      "explanation": "Service A -[depends_on]-> Database B"
+    }
+  ],
+  "total_paths": 1,
+  "found": true
+}
+```
+
 ## Frontend Overview
 
 The frontend provides a studio-style UI for:

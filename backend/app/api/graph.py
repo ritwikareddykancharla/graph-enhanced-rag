@@ -355,6 +355,7 @@ async def query_path(
             target_id=query.target_node_id,
             max_depth=query.max_depth,
             relation_types=query.relation_types,
+            top_k=query.top_k or 3,
         )
         return result
     except ValueError as e:

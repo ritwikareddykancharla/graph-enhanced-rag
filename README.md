@@ -195,11 +195,9 @@ Create two Railway services from the same repo.
 
 ### Railpack Autodetect (Repo Root)
 
-If you want Railpack to autodetect from the repo root, use the provided `start.sh`
-and set `SERVICE_ROLE` per service:
-
-- Backend service: `SERVICE_ROLE=backend`
-- Frontend service: `SERVICE_ROLE=frontend`
+If you want Railpack to autodetect from the repo root, it will default to the backend
+via `railpack.toml`. The frontend still needs its own service with Root Directory
+set to `frontend`.
 
 ## Example Request
 
